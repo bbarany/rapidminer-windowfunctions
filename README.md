@@ -62,6 +62,12 @@ More functions could be implemented in the process.
 
 ### Usage examples
 
+Calculating the average temperature for each different value of "outlook" and
+adding a global rank by humidity on the Golf dataset:
+
+![Golf with average temperature and humidity rank](images/golf-temperature-humidity.png)
+
+The example process is available from the [**examples** directory](examples/). 
 
 
 ## Usage
