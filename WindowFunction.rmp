@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="7.2.003">
+  <context>
+    <input>
+      <location>//Local Repository/Development/WindowFunc/testdata1</location>
+    </input>
+    <output/>
+    <macros>
+      <macro>
+        <key>groupFields</key>
+        <value>Id</value>
+      </macro>
+      <macro>
+        <key>function</key>
+        <value>dense_rank</value>
+      </macro>
+      <macro>
+        <key>valueField</key>
+        <value>Amount</value>
+      </macro>
+      <macro>
+        <key>orderField</key>
+        <value>transactionId</value>
+      </macro>
+    </macros>
+  </context>
+  <operator activated="true" class="process" compatibility="7.2.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="&quot;ori&quot; output" width="90" x="45" y="187"/>
+      <operator activated="true" class="subprocess" compatibility="7.2.003" expanded="true" height="82" name="Set up IDs and groups" width="90" x="179" y="34">
+        <process expanded="true">
+          <operator activated="true" class="generate_macro" compatibility="7.2.003" expanded="true" height="82" name="Convert group fields" width="90" x="45" y="85">
+            <list key="function_descriptions">
+              <parameter key="WF_groupFields" value="&quot;[&quot; + replaceAll(%{groupFields}, &quot;, *&quot;, &quot;] + \&quot;-/-\&quot; + [&quot;) + &quot;]&quot;"/>
+            </list>
+            <description align="center" color="transparent" colored="false" width="126">Creates a Generate Attributes formula from the incoming groupFields</description>
+          </operator>
+          <operator activated="true" class="generate_attributes" compatibility="7.2.003" expanded="true" height="82" name="Generate WF_GroupId" width="90" x="179" y="85">
+            <list key="function_descriptions">
+              <parameter key="WF_GroupId" value="eval(%{WF_groupFields})"/>
+            </list>
+            <parameter key="keep_all" value="true"/>
+          </operator>
+          <operator activated="true" class="set_role" compatibility="7.2.003" expanded="true" height="82" name="Set WF_GroupId as special" width="90" x="313" y="85">
+            <parameter key="attribute_name" value="WF_GroupId"/>
+            <parameter key="target_role" value="WF_GroupId"/>
+            <list key="set_additional_roles"/>
+          </operator>
+          <operator activated="true" class="unset_macro" compatibility="7.2.003" expanded="true" height="82" name="Unset Macro" width="90" x="447" y="85">
+            <parameter key="macro" value="WF_groupFields"/>
+            <enumeration key="macros"/>
+          </operator>
+          <operator activated="true" class="execute_script" compatibility="7.2.003" expanded="true" height="82" name="Add special row Id" width="90" x="715" y="85">
+            <parameter key="script" value="import com.rapidminer.tools.Ontology;&#10;&#10;ExampleSet exampleSet = input[0];&#10;&#10;Attributes attributes = exampleSet.getAttributes();&#10;&#10;//Create new ID variable used in the special functions&#10;counterAtt = AttributeFactory.createAttribute(&quot;WF_rowId&quot;, Ontology.NUMERICAL);&#10;attributes.addRegular(counterAtt);&#10;exampleSet.getExampleTable().addAttribute(counterAtt);&#10;&#10;//Add the same role name so to make it a special attribute&#10;role = attributes.getRole(counterAtt);&#10;role.setSpecial(&quot;WF_rowId&quot;);&#10;&#10;counter = 0;&#10;&#10;for ( Example example : exampleSet ) {&#10;&#10;&#9;counter ++;&#10;&#9;example.setValue(counterAtt, counter);&#10;}&#10;&#10;return(exampleSet);"/>
+            <parameter key="standard_imports" value="true"/>
+          </operator>
+          <connect from_port="in 1" to_op="Convert group fields" to_port="through 1"/>
+          <connect from_op="Convert group fields" from_port="through 1" to_op="Generate WF_GroupId" to_port="example set input"/>
+          <connect from_op="Generate WF_GroupId" from_port="example set output" to_op="Set WF_GroupId as special" to_port="example set input"/>
+          <connect from_op="Set WF_GroupId as special" from_port="example set output" to_op="Unset Macro" to_port="through 1"/>
+          <connect from_op="Unset Macro" from_port="through 1" to_op="Add special row Id" to_port="input 1"/>
+          <connect from_op="Add special row Id" from_port="output 1" to_port="out 1"/>
+          <portSpacing port="source_in 1" spacing="0"/>
+          <portSpacing port="source_in 2" spacing="0"/>
+          <portSpacing port="sink_out 1" spacing="0"/>
+          <portSpacing port="sink_out 2" spacing="0"/>
+          <description align="left" color="blue" colored="true" height="261" resized="true" width="574" x="22" y="29">WF_groupId</description>
+          <description align="left" color="gray" colored="true" height="257" resized="true" width="238" x="604" y="30">WF_rowId</description>
+          <description align="left" color="green" colored="true" height="125" resized="true" width="779" x="23" y="302">Two special attributes are created here.&lt;br&gt;WF_groupId: A special attribute that contains the concatenated values for grouping examples.&lt;br/&gt;WF_rowId: A special Id attribute for joining back example sets that have been changed during execution</description>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">Sets up group and example identifiers</description>
+      </operator>
+      <operator activated="true" class="subprocess" compatibility="7.2.003" expanded="true" height="82" name="Apply window function" width="90" x="380" y="34">
+        <process expanded="true">
+          <operator activated="true" class="branch" compatibility="7.2.003" expanded="true" height="82" name="Special or normal function?" width="90" x="112" y="34">
+            <parameter key="condition_type" value="expression"/>
+            <parameter key="expression" value="%{function} == &quot;row_number&quot; || %{function} == &quot;rank&quot; || %{function} == &quot;dense_rank&quot;"/>
+            <parameter key="io_object" value="ANOVAMatrix"/>
+            <parameter key="return_inner_output" value="true"/>
+            <process expanded="true">
+              <operator activated="true" class="generate_macro" compatibility="7.2.003" expanded="true" height="82" name="Prepare function branch" width="90" x="45" y="34">
+                <list key="function_descriptions">
+                  <parameter key="WF_functionNr" value="if(%{function} == &quot;row_number&quot;, 1,&#10;&#9;if(%{function} == &quot;rank&quot;, 2,&#10;&#9;&#9;if(%{function} == &quot;dense_rank&quot;, 3,&#10;&#9;&#9;4&#10;)))"/>
+                </list>
+              </operator>
+              <operator activated="true" class="select_subprocess" compatibility="7.2.003" expanded="true" height="82" name="Apply special function" width="90" x="179" y="34">
+                <parameter key="select_which" value="%{WF_functionNr}"/>
+                <process expanded="true">
+                  <operator activated="true" class="loop_values" compatibility="7.2.003" expanded="true" height="82" name="Loop groups, row_number" width="90" x="45" y="187">
+                    <parameter key="attribute" value="WF_GroupId"/>
+                    <parameter key="iteration_macro" value="WF_group"/>
+                    <process expanded="true">
+                      <operator activated="true" class="filter_examples" compatibility="7.2.003" expanded="true" height="103" name="Filter current group for row_number" width="90" x="112" y="34">
+                        <parameter key="parameter_expression" value="[WF_GroupId] == %{WF_group}"/>
+                        <parameter key="condition_class" value="expression"/>
+                        <parameter key="invert_filter" value="false"/>
+                        <list key="filters_list"/>
+                        <parameter key="filters_logic_and" value="true"/>
+                        <parameter key="filters_check_metadata" value="true"/>
+                      </operator>
+                      <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply for row_number" width="90" x="246" y="34"/>
+                      <operator activated="true" class="sort" compatibility="7.2.003" expanded="true" height="82" name="Sort by orderField (row_number)" width="90" x="380" y="136">
+                        <parameter key="attribute_name" value="%{orderField}"/>
+                        <parameter key="sorting_direction" value="increasing"/>
+                      </operator>
+                      <operator activated="true" class="execute_script" compatibility="7.2.003" expanded="true" height="82" name="Add row number" width="90" x="514" y="136">
+                        <parameter key="script" value="import com.rapidminer.tools.Ontology;&#10;&#10;ExampleSet exampleSet = input[0];&#10;&#10;Attributes attributes = exampleSet.getAttributes();&#10;&#10;//Create new row_number result attribute&#10;counterAtt = AttributeFactory.createAttribute(&quot;%{valueField}_grp_%{function}&quot;, Ontology.NUMERICAL);&#10;attributes.addRegular(counterAtt);&#10;exampleSet.getExampleTable().addAttribute(counterAtt);&#10;&#10;counter = 0;&#10;&#10;for ( Example example : exampleSet ) {&#10;&#10;&#9;counter ++;&#10;&#9;example.setValue(counterAtt, counter);&#10;}&#10;&#10;return(exampleSet);"/>
+                        <parameter key="standard_imports" value="true"/>
+                      </operator>
+                      <operator activated="true" class="join" compatibility="7.2.003" expanded="true" height="82" name="Join back, maintaining order for row_number" width="90" x="648" y="34">
+                        <parameter key="remove_double_attributes" value="true"/>
+                        <parameter key="join_type" value="inner"/>
+                        <parameter key="use_id_attribute_as_key" value="false"/>
+                        <list key="key_attributes">
+                          <parameter key="WF_rowId" value="WF_rowId"/>
+                        </list>
+                        <parameter key="keep_both_join_attributes" value="false"/>
+                      </operator>
+                      <connect from_port="example set" to_op="Filter current group for row_number" to_port="example set input"/>
+                      <connect from_op="Filter current group for row_number" from_port="example set output" to_op="Multiply for row_number" to_port="input"/>
+                      <connect from_op="Multiply for row_number" from_port="output 1" to_op="Join back, maintaining order for row_number" to_port="left"/>
+                      <connect from_op="Multiply for row_number" from_port="output 2" to_op="Sort by orderField (row_number)" to_port="example set input"/>
+                      <connect from_op="Sort by orderField (row_number)" from_port="example set output" to_op="Add row number" to_port="input 1"/>
+                      <connect from_op="Add row number" from_port="output 1" to_op="Join back, maintaining order for row_number" to_port="right"/>
+                      <connect from_op="Join back, maintaining order for row_number" from_port="join" to_port="out 1"/>
+                      <portSpacing port="source_example set" spacing="0"/>
+                      <portSpacing port="sink_out 1" spacing="0"/>
+                      <portSpacing port="sink_out 2" spacing="0"/>
+                      <description align="left" color="green" colored="true" height="156" resized="true" width="672" x="95" y="251">The current group is sorted by the %{orderField}, and the row number is added. &lt;br/&gt;&lt;br/&gt;In order to maintain the original example ordering, the result is joined back to the original group.</description>
+                    </process>
+                  </operator>
+                  <connect from_port="input 1" to_op="Loop groups, row_number" to_port="example set"/>
+                  <connect from_op="Loop groups, row_number" from_port="out 1" to_port="output 1"/>
+                  <portSpacing port="source_input 1" spacing="0"/>
+                  <portSpacing port="source_input 2" spacing="0"/>
+                  <portSpacing port="sink_output 1" spacing="0"/>
+                  <portSpacing port="sink_output 2" spacing="0"/>
+                  <description align="center" color="purple" colored="true" height="125" resized="false" width="180" x="37" y="34">row_number:&lt;br&gt;Unique record number per group, sorted on the %{orderField}&lt;br/&gt;&lt;br/&gt;1, 2, 3, 4, 5, 6</description>
+                </process>
+                <process expanded="true">
+                  <operator activated="true" class="loop_values" compatibility="7.2.003" expanded="true" height="82" name="Loop groups, rank" width="90" x="112" y="187">
+                    <parameter key="attribute" value="WF_GroupId"/>
+                    <parameter key="iteration_macro" value="WF_group"/>
+                    <process expanded="true">
+                      <operator activated="true" class="filter_examples" compatibility="7.2.003" expanded="true" height="103" name="Filter current group for rank" width="90" x="112" y="34">
+                        <parameter key="parameter_expression" value="[WF_GroupId] == %{WF_group}"/>
+                        <parameter key="condition_class" value="expression"/>
+                        <parameter key="invert_filter" value="false"/>
+                        <list key="filters_list"/>
+                        <parameter key="filters_logic_and" value="true"/>
+                        <parameter key="filters_check_metadata" value="true"/>
+                      </operator>
+                      <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply for rank" width="90" x="246" y="34"/>
+                      <operator activated="true" class="sort" compatibility="7.2.003" expanded="true" height="82" name="Sort by orderField for rank" width="90" x="380" y="136">
+                        <parameter key="attribute_name" value="%{orderField}"/>
+                        <parameter key="sorting_direction" value="increasing"/>
+                      </operator>
+                      <operator activated="true" class="execute_script" compatibility="7.2.003" expanded="true" height="82" name="Add rank" width="90" x="514" y="136">
+                        <parameter key="script" value="import com.rapidminer.tools.Ontology;&#10;&#10;ExampleSet exampleSet = input[0];&#10;&#10;Attributes attributes = exampleSet.getAttributes();&#10;&#10;//Create new row_number result attribute&#10;rankAtt = AttributeFactory.createAttribute(&quot;%{valueField}_grp_%{function}&quot;, Ontology.NUMERICAL);&#10;attributes.addRegular(rankAtt);&#10;exampleSet.getExampleTable().addAttribute(rankAtt);&#10;&#10;comparisonAtt = exampleSet.getAttributes().get(&quot;%{orderField}&quot;);&#10;&#10;//We start counting the rank at 1. &#10;//If the next row contains the same value, the rank is kept;&#10;//if not, it is incremented.&#10;&#10;//Determines if an attribute is nominal&#10;def isNominal = { att -&gt;&#10;&#9;type = att.getValueType();&#10;&#9;type == Ontology.NOMINAL || type == Ontology.BINOMINAL || type == Ontology.POLYNOMINAL;&#10;}&#10;&#10;//Fetches the correct value type from the example, depending on the attribute type &#10;def getExampleValue = { ex, att -&gt;&#10;&#9;if (isNominal(att)) {&#10;&#9;&#9;ret = ex.getNominalValue(att);&#10;&#9;} else {&#10;&#9;&#9;ret = ex.getValue(att);&#10;&#9;}&#9;&#10;&#9;ret;&#10;}&#10;&#10;rank = 1;&#10;dups = 0;&#10;&#10;lastValue = null;&#10;&#10;for ( Example example : exampleSet ) {&#10;&#10;&#9;if (lastValue == null) {&#10;&#9;&#9;dups ++;&#10;&#9;} else if (lastValue &lt; getExampleValue(example, comparisonAtt)) {&#10;&#9;&#9;//The last value is different, so a new rank is generated&#10;&#9;&#9;rank = rank + dups;&#10;&#9;&#9;dups = 1;&#10;&#9;} else {&#10;&#9;&#9;dups ++;&#10;&#9;}&#10;&#9;&#10;&#9;example.setValue(rankAtt, rank);&#10;&#9;lastValue = getExampleValue(example, comparisonAtt);&#10;}&#10;&#10;return(exampleSet);"/>
+                        <parameter key="standard_imports" value="true"/>
+                      </operator>
+                      <operator activated="true" class="join" compatibility="7.2.003" expanded="true" height="82" name="Join back, maintaining order for rank" width="90" x="648" y="34">
+                        <parameter key="remove_double_attributes" value="true"/>
+                        <parameter key="join_type" value="inner"/>
+                        <parameter key="use_id_attribute_as_key" value="false"/>
+                        <list key="key_attributes">
+                          <parameter key="WF_rowId" value="WF_rowId"/>
+                        </list>
+                        <parameter key="keep_both_join_attributes" value="false"/>
+                      </operator>
+                      <connect from_port="example set" to_op="Filter current group for rank" to_port="example set input"/>
+                      <connect from_op="Filter current group for rank" from_port="example set output" to_op="Multiply for rank" to_port="input"/>
+                      <connect from_op="Multiply for rank" from_port="output 1" to_op="Join back, maintaining order for rank" to_port="left"/>
+                      <connect from_op="Multiply for rank" from_port="output 2" to_op="Sort by orderField for rank" to_port="example set input"/>
+                      <connect from_op="Sort by orderField for rank" from_port="example set output" to_op="Add rank" to_port="input 1"/>
+                      <connect from_op="Add rank" from_port="output 1" to_op="Join back, maintaining order for rank" to_port="right"/>
+                      <connect from_op="Join back, maintaining order for rank" from_port="join" to_port="out 1"/>
+                      <portSpacing port="source_example set" spacing="0"/>
+                      <portSpacing port="sink_out 1" spacing="0"/>
+                      <portSpacing port="sink_out 2" spacing="0"/>
+                    </process>
+                  </operator>
+                  <connect from_port="input 1" to_op="Loop groups, rank" to_port="example set"/>
+                  <connect from_op="Loop groups, rank" from_port="out 1" to_port="output 1"/>
+                  <portSpacing port="source_input 1" spacing="0"/>
+                  <portSpacing port="source_input 2" spacing="0"/>
+                  <portSpacing port="sink_output 1" spacing="0"/>
+                  <portSpacing port="sink_output 2" spacing="0"/>
+                  <description align="center" color="purple" colored="true" height="144" resized="false" width="180" x="61" y="22">rank:&lt;br&gt;Non-unique record rank by group, ordered and compared by %{orderField}&lt;br/&gt;&lt;br/&gt;Breaks in the ranks:&lt;br/&gt;1, 1, 3, 4, 4, 6</description>
+                </process>
+                <process expanded="true">
+                  <operator activated="true" class="loop_values" compatibility="7.2.003" expanded="true" height="82" name="Loop groups, dense_rank" width="90" x="112" y="187">
+                    <parameter key="attribute" value="WF_GroupId"/>
+                    <parameter key="iteration_macro" value="WF_group"/>
+                    <process expanded="true">
+                      <operator activated="true" class="filter_examples" compatibility="7.2.003" expanded="true" height="103" name="Filter current group for dense_rank" width="90" x="112" y="34">
+                        <parameter key="parameter_expression" value="[WF_GroupId] == %{WF_group}"/>
+                        <parameter key="condition_class" value="expression"/>
+                        <parameter key="invert_filter" value="false"/>
+                        <list key="filters_list"/>
+                        <parameter key="filters_logic_and" value="true"/>
+                        <parameter key="filters_check_metadata" value="true"/>
+                      </operator>
+                      <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply for dense_rank" width="90" x="246" y="34"/>
+                      <operator activated="true" class="sort" compatibility="7.2.003" expanded="true" height="82" name="Sort by orderField for dense_rank" width="90" x="380" y="136">
+                        <parameter key="attribute_name" value="%{orderField}"/>
+                        <parameter key="sorting_direction" value="increasing"/>
+                      </operator>
+                      <operator activated="true" class="execute_script" compatibility="7.2.003" expanded="true" height="82" name="Add dense_rank" width="90" x="514" y="136">
+                        <parameter key="script" value="import com.rapidminer.tools.Ontology;&#10;&#10;ExampleSet exampleSet = input[0];&#10;&#10;Attributes attributes = exampleSet.getAttributes();&#10;&#10;//Create new row_number result attribute&#10;rankAtt = AttributeFactory.createAttribute(&quot;%{valueField}_grp_%{function}&quot;, Ontology.NUMERICAL);&#10;attributes.addRegular(rankAtt);&#10;exampleSet.getExampleTable().addAttribute(rankAtt);&#10;&#10;comparisonAtt = exampleSet.getAttributes().get(&quot;%{orderField}&quot;);&#10;&#10;//We start counting the rank at 1. &#10;//If the next row contains the same value, the rank is kept;&#10;//if not, it is incremented.&#10;&#10;//Determines if an attribute is nominal&#10;def isNominal = { att -&gt;&#10;&#9;type = att.getValueType();&#10;&#9;type == Ontology.NOMINAL || type == Ontology.BINOMINAL || type == Ontology.POLYNOMINAL;&#10;}&#10;&#10;//Fetches the correct value type from the example, depending on the attribute type &#10;def getExampleValue = { ex, att -&gt;&#10;&#9;if (isNominal(att)) {&#10;&#9;&#9;ret = ex.getNominalValue(att);&#10;&#9;} else {&#10;&#9;&#9;ret = ex.getValue(att);&#10;&#9;}&#9;&#10;&#9;ret;&#10;}&#10;&#10;rank = 1;&#10;&#10;lastValue = null;&#10;&#10;for ( Example example : exampleSet ) {&#10;&#10;&#9;if (lastValue == null) {&#10;&#9;&#9;//No change&#10;&#9;} else if (lastValue &lt; getExampleValue(example, comparisonAtt)) {&#10;&#9;&#9;//The last value is different, so a new rank is generated&#10;&#9;&#9;rank ++;&#10;&#9;}&#10;&#9;&#10;&#9;example.setValue(rankAtt, rank);&#10;&#9;lastValue = getExampleValue(example, comparisonAtt);&#10;}&#10;&#10;return(exampleSet);"/>
+                        <parameter key="standard_imports" value="true"/>
+                      </operator>
+                      <operator activated="true" class="join" compatibility="7.2.003" expanded="true" height="82" name="Join back, maintaining order for dense_rank" width="90" x="648" y="34">
+                        <parameter key="remove_double_attributes" value="true"/>
+                        <parameter key="join_type" value="inner"/>
+                        <parameter key="use_id_attribute_as_key" value="false"/>
+                        <list key="key_attributes">
+                          <parameter key="WF_rowId" value="WF_rowId"/>
+                        </list>
+                        <parameter key="keep_both_join_attributes" value="false"/>
+                      </operator>
+                      <connect from_port="example set" to_op="Filter current group for dense_rank" to_port="example set input"/>
+                      <connect from_op="Filter current group for dense_rank" from_port="example set output" to_op="Multiply for dense_rank" to_port="input"/>
+                      <connect from_op="Multiply for dense_rank" from_port="output 1" to_op="Join back, maintaining order for dense_rank" to_port="left"/>
+                      <connect from_op="Multiply for dense_rank" from_port="output 2" to_op="Sort by orderField for dense_rank" to_port="example set input"/>
+                      <connect from_op="Sort by orderField for dense_rank" from_port="example set output" to_op="Add dense_rank" to_port="input 1"/>
+                      <connect from_op="Add dense_rank" from_port="output 1" to_op="Join back, maintaining order for dense_rank" to_port="right"/>
+                      <connect from_op="Join back, maintaining order for dense_rank" from_port="join" to_port="out 1"/>
+                      <portSpacing port="source_example set" spacing="0"/>
+                      <portSpacing port="sink_out 1" spacing="0"/>
+                      <portSpacing port="sink_out 2" spacing="0"/>
+                    </process>
+                  </operator>
+                  <connect from_port="input 1" to_op="Loop groups, dense_rank" to_port="example set"/>
+                  <connect from_op="Loop groups, dense_rank" from_port="out 1" to_port="output 1"/>
+                  <portSpacing port="source_input 1" spacing="0"/>
+                  <portSpacing port="source_input 2" spacing="0"/>
+                  <portSpacing port="sink_output 1" spacing="0"/>
+                  <portSpacing port="sink_output 2" spacing="0"/>
+                  <description align="center" color="purple" colored="true" height="144" resized="false" width="180" x="79" y="38">dense_rank:&lt;br/&gt;Non-unique record rank by group, ordered and compared by %{orderField}&lt;br/&gt;&lt;br/&gt;No breaks in the ranks:&lt;br/&gt;1, 1, 2, 3, 3, 4, 5, 6</description>
+                </process>
+                <process expanded="true">
+                  <operator activated="true" class="throw_exception" compatibility="7.2.003" expanded="true" height="82" name="Throw Exception" width="90" x="45" y="34">
+                    <parameter key="message" value="Invalid window function name"/>
+                  </operator>
+                  <connect from_port="input 1" to_op="Throw Exception" to_port="through 1"/>
+                  <connect from_op="Throw Exception" from_port="through 1" to_port="output 1"/>
+                  <portSpacing port="source_input 1" spacing="0"/>
+                  <portSpacing port="source_input 2" spacing="0"/>
+                  <portSpacing port="sink_output 1" spacing="0"/>
+                  <portSpacing port="sink_output 2" spacing="0"/>
+                </process>
+              </operator>
+              <operator activated="true" class="append" compatibility="7.2.003" expanded="true" height="82" name="Flatten special collection" width="90" x="380" y="34">
+                <parameter key="datamanagement" value="double_array"/>
+                <parameter key="merge_type" value="all"/>
+              </operator>
+              <connect from_port="condition" to_op="Prepare function branch" to_port="through 1"/>
+              <connect from_op="Prepare function branch" from_port="through 1" to_op="Apply special function" to_port="input 1"/>
+              <connect from_op="Apply special function" from_port="output 1" to_op="Flatten special collection" to_port="example set 1"/>
+              <connect from_op="Flatten special collection" from_port="merged set" to_port="input 1"/>
+              <portSpacing port="source_condition" spacing="0"/>
+              <portSpacing port="source_input 1" spacing="0"/>
+              <portSpacing port="sink_input 1" spacing="0"/>
+              <portSpacing port="sink_input 2" spacing="0"/>
+              <description align="left" color="green" colored="true" height="131" resized="true" width="420" x="19" y="147">Functions with special implementations&lt;br&gt;&lt;br&gt;- row_number: unique per group&lt;br&gt;- rank: with missing ranks after ties: 1, 1, 3, 4, 4, 6 etc.&lt;br&gt;- dense_rank: without missing ranks after ties: 1, 1, 2 etc.</description>
+            </process>
+            <process expanded="true">
+              <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply" width="90" x="45" y="34"/>
+              <operator activated="true" class="loop_values" compatibility="7.2.003" expanded="true" height="82" name="Loop groups, normal function" width="90" x="112" y="187">
+                <parameter key="attribute" value="WF_GroupId"/>
+                <parameter key="iteration_macro" value="WF_group"/>
+                <process expanded="true">
+                  <operator activated="true" class="filter_examples" compatibility="7.2.003" expanded="true" height="103" name="Filter current group" width="90" x="112" y="34">
+                    <parameter key="parameter_expression" value="[WF_GroupId] == %{WF_group}"/>
+                    <parameter key="condition_class" value="expression"/>
+                    <parameter key="invert_filter" value="false"/>
+                    <list key="filters_list"/>
+                    <parameter key="filters_logic_and" value="true"/>
+                    <parameter key="filters_check_metadata" value="true"/>
+                  </operator>
+                  <operator activated="true" class="aggregate" compatibility="7.2.003" expanded="true" height="82" name="Aggregate group" width="90" x="246" y="34">
+                    <parameter key="use_default_aggregation" value="false"/>
+                    <parameter key="attribute_filter_type" value="all"/>
+                    <parameter key="attribute" value=""/>
+                    <parameter key="attributes" value=""/>
+                    <parameter key="use_except_expression" value="false"/>
+                    <parameter key="value_type" value="attribute_value"/>
+                    <parameter key="use_value_type_exception" value="false"/>
+                    <parameter key="except_value_type" value="time"/>
+                    <parameter key="block_type" value="attribute_block"/>
+                    <parameter key="use_block_type_exception" value="false"/>
+                    <parameter key="except_block_type" value="value_matrix_row_start"/>
+                    <parameter key="invert_selection" value="false"/>
+                    <parameter key="include_special_attributes" value="false"/>
+                    <parameter key="default_aggregation_function" value="average"/>
+                    <list key="aggregation_attributes">
+                      <parameter key="%{valueField}" value="%{function}"/>
+                    </list>
+                    <parameter key="group_by_attributes" value="WF_GroupId"/>
+                    <parameter key="count_all_combinations" value="false"/>
+                    <parameter key="only_distinct" value="false"/>
+                    <parameter key="ignore_missings" value="true"/>
+                  </operator>
+                  <operator activated="true" class="rename_by_replacing" compatibility="7.2.003" expanded="true" height="82" name="Rename by Replacing" width="90" x="380" y="34">
+                    <parameter key="attribute_filter_type" value="all"/>
+                    <parameter key="attribute" value=""/>
+                    <parameter key="attributes" value=""/>
+                    <parameter key="use_except_expression" value="false"/>
+                    <parameter key="value_type" value="attribute_value"/>
+                    <parameter key="use_value_type_exception" value="false"/>
+                    <parameter key="except_value_type" value="time"/>
+                    <parameter key="block_type" value="attribute_block"/>
+                    <parameter key="use_block_type_exception" value="false"/>
+                    <parameter key="except_block_type" value="value_matrix_row_start"/>
+                    <parameter key="invert_selection" value="false"/>
+                    <parameter key="include_special_attributes" value="true"/>
+                    <parameter key="replace_what" value="%{function}\(%{valueField}\)"/>
+                    <parameter key="replace_by" value="%{valueField}_grp_%{function}"/>
+                  </operator>
+                  <connect from_port="example set" to_op="Filter current group" to_port="example set input"/>
+                  <connect from_op="Filter current group" from_port="example set output" to_op="Aggregate group" to_port="example set input"/>
+                  <connect from_op="Aggregate group" from_port="example set output" to_op="Rename by Replacing" to_port="example set input"/>
+                  <connect from_op="Rename by Replacing" from_port="example set output" to_port="out 1"/>
+                  <portSpacing port="source_example set" spacing="0"/>
+                  <portSpacing port="sink_out 1" spacing="0"/>
+                  <portSpacing port="sink_out 2" spacing="0"/>
+                </process>
+              </operator>
+              <operator activated="true" class="append" compatibility="7.2.003" expanded="true" height="82" name="Flatten standard collection" width="90" x="246" y="187">
+                <parameter key="datamanagement" value="double_array"/>
+                <parameter key="merge_type" value="all"/>
+              </operator>
+              <operator activated="true" class="join" compatibility="7.2.003" expanded="true" height="82" name="Join result" width="90" x="380" y="34">
+                <parameter key="remove_double_attributes" value="true"/>
+                <parameter key="join_type" value="inner"/>
+                <parameter key="use_id_attribute_as_key" value="false"/>
+                <list key="key_attributes">
+                  <parameter key="WF_GroupId" value="WF_GroupId"/>
+                </list>
+                <parameter key="keep_both_join_attributes" value="false"/>
+              </operator>
+              <connect from_port="condition" to_op="Multiply" to_port="input"/>
+              <connect from_op="Multiply" from_port="output 1" to_op="Join result" to_port="left"/>
+              <connect from_op="Multiply" from_port="output 2" to_op="Loop groups, normal function" to_port="example set"/>
+              <connect from_op="Loop groups, normal function" from_port="out 1" to_op="Flatten standard collection" to_port="example set 1"/>
+              <connect from_op="Flatten standard collection" from_port="merged set" to_op="Join result" to_port="right"/>
+              <connect from_op="Join result" from_port="join" to_port="input 1"/>
+              <portSpacing port="source_condition" spacing="0"/>
+              <portSpacing port="source_input 1" spacing="0"/>
+              <portSpacing port="sink_input 1" spacing="0"/>
+              <portSpacing port="sink_input 2" spacing="0"/>
+              <description align="left" color="green" colored="true" height="111" resized="true" width="338" x="79" y="283">Functions implemented by RapidMiner aggregations.&lt;br/&gt;&lt;br/&gt;The aggregations are calculated groupwise and joined back to the original data by the group ID.</description>
+            </process>
+          </operator>
+          <connect from_port="in 1" to_op="Special or normal function?" to_port="condition"/>
+          <connect from_op="Special or normal function?" from_port="input 1" to_port="out 1"/>
+          <portSpacing port="source_in 1" spacing="0"/>
+          <portSpacing port="source_in 2" spacing="0"/>
+          <portSpacing port="sink_out 1" spacing="0"/>
+          <portSpacing port="sink_out 2" spacing="0"/>
+          <description align="left" color="green" colored="true" height="110" resized="true" width="266" x="111" y="133">The result is either calculated by the RapidMiner Aggregate operator or by Groovy implementations of special functions: row_number, rank, dense_rank</description>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">Applies the window function on the grouped subsets</description>
+      </operator>
+      <operator activated="true" class="subprocess" compatibility="7.2.003" expanded="true" height="82" name="Clean up result" width="90" x="581" y="34">
+        <process expanded="true">
+          <operator activated="true" class="select_attributes" compatibility="7.2.003" expanded="true" height="82" name="Remove WF_* attributes" width="90" x="112" y="34">
+            <parameter key="attribute_filter_type" value="regular_expression"/>
+            <parameter key="attribute" value=""/>
+            <parameter key="attributes" value=""/>
+            <parameter key="regular_expression" value="^WF_.+"/>
+            <parameter key="use_except_expression" value="false"/>
+            <parameter key="value_type" value="attribute_value"/>
+            <parameter key="use_value_type_exception" value="false"/>
+            <parameter key="except_value_type" value="time"/>
+            <parameter key="block_type" value="attribute_block"/>
+            <parameter key="use_block_type_exception" value="false"/>
+            <parameter key="except_block_type" value="value_matrix_row_start"/>
+            <parameter key="invert_selection" value="true"/>
+            <parameter key="include_special_attributes" value="true"/>
+          </operator>
+          <operator activated="true" class="unset_macro" compatibility="7.2.003" expanded="true" height="82" name="Remove WF_* macros" width="90" x="313" y="34">
+            <parameter key="macro" value="WF_functionNr"/>
+            <enumeration key="macros">
+              <parameter key="macro" value="WF_group"/>
+            </enumeration>
+          </operator>
+          <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="82" name="Result with window function" width="90" x="514" y="34">
+            <description align="center" color="transparent" colored="false" width="126">Just a dummy so the output example set has a nice name</description>
+          </operator>
+          <connect from_port="in 1" to_op="Remove WF_* attributes" to_port="example set input"/>
+          <connect from_op="Remove WF_* attributes" from_port="example set output" to_op="Remove WF_* macros" to_port="through 1"/>
+          <connect from_op="Remove WF_* macros" from_port="through 1" to_op="Result with window function" to_port="input"/>
+          <connect from_op="Result with window function" from_port="output 1" to_port="out 1"/>
+          <portSpacing port="source_in 1" spacing="0"/>
+          <portSpacing port="source_in 2" spacing="0"/>
+          <portSpacing port="sink_out 1" spacing="0"/>
+          <portSpacing port="sink_out 2" spacing="0"/>
+        </process>
+        <description align="center" color="transparent" colored="false" width="126">Removes generated attributes etc.</description>
+      </operator>
+      <connect from_port="input 1" to_op="&quot;ori&quot; output" to_port="input"/>
+      <connect from_op="&quot;ori&quot; output" from_port="output 1" to_op="Set up IDs and groups" to_port="in 1"/>
+      <connect from_op="&quot;ori&quot; output" from_port="output 2" to_port="result 2"/>
+      <connect from_op="Set up IDs and groups" from_port="out 1" to_op="Apply window function" to_port="in 1"/>
+      <connect from_op="Apply window function" from_port="out 1" to_op="Clean up result" to_port="in 1"/>
+      <connect from_op="Clean up result" from_port="out 1" to_port="result 1"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="source_input 2" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="147"/>
+      <portSpacing port="sink_result 3" spacing="63"/>
+      <description align="left" color="green" colored="true" height="167" resized="true" width="685" x="40" y="310">Applies &amp;quot;window functions&amp;quot; on the incoming data.&lt;br&gt;Everything is defined in the process context.&lt;br&gt;groupFields: Comma-separated list of fields to group on.&lt;br&gt;function: Name of the function to apply. Either one of the function names from the Aggregate operator or row_number, rank, dense_rank&lt;br&gt;valueField: The name of the value attribute which the aggregation function acts upon&lt;br&gt;orderField: For the ranking and numbering functions, the ordering attribute inside the subgroup</description>
+      <description align="right" color="purple" colored="true" height="50" resized="true" width="140" x="899" y="234">Original data</description>
+    </process>
+  </operator>
+</process>
