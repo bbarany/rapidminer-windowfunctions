@@ -32,8 +32,10 @@ Groovy scripting).
 
 ### Available Functionality
 
-All functions available in the RapidMiner Aggregate operator are also available
-in the Window Functions process. (As it is used in the background.)
+All functions available in the RapidMiner 
+[Aggregate](http://docs.rapidminer.com/studio/operators/blending/table/grouping/aggregate.html) 
+operator are also available in the Window Functions process. (This operator is
+used in the background.)
 
 In SQL databases, partial/cumulative aggregation is possible by specifying both
 PARTITION BY and ORDER BY in the window function. This gives you running sums,
@@ -61,5 +63,43 @@ More functions could be implemented in the process.
 ### Usage examples
 
 
+
+## Usage
+
+Import the Window Functions process into your repository by downloading and
+saving it in your Local Repository folder. You can also save it anywhere and use
+_File/Import Process..._ to open it in Studio and save it wherever you like, for
+example on a Server.
+
+Drag the process from the repository into your process or use Execute Process
+and select its location. In any case, you need to specify a few macros in the
+Execute Process operator to configure it.
+
+#### Configuration macros
+
+**groupFields**: (required) Comma-separated list of attributes to group on. You
+can put spaces after the commas. At least one grouping attribute is required. If
+only one attribute is used, is has to be nominal (this is a RapidMiner
+limitation). 
+
+Sometimes it's useful to work without grouping, e. g. to calculate an overall
+average or a rank by some attribute. In this case, just generate a dummy
+grouping attribute with a value like "x", use it for grouping, and remove it
+later. (An obvious enhancement idea for a future version: the process could do
+this automatically.)
+
+**function**: (required) Name of the function to apply. Either one of the function names
+from the Aggregate operator or one of the implemented functions:
+
+- row_number
+- rank 
+- dense_rank
+
+**valueField**: (required) The name of the value attribute which the aggregation function
+acts upon. 
+
+**orderField**: For the ranking and numbering functions, the ordering attribute
+inside the subgroup. If you're using the standard aggregation functions of
+RapidMiner's Aggregate operator, this doesn't need to be specified.
 
 
