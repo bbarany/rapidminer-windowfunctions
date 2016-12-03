@@ -62,20 +62,25 @@ More functions could be implemented in the process.
 
 ### Usage examples
 
-Calculating the average temperature for each different value of "outlook" and
+The example processes are available from the [**examples** directory](examples/). 
+
+- Calculating the average temperature for each different value of "outlook" and
 adding a global rank by humidity on the Golf dataset:
 
 ![Golf with average temperature and humidity rank](images/golf-temperature-humidity.png)
 
-The example process is available from the [**examples** directory](examples/). 
+- Calculating the average value of "a3" in the Iris dataset and filtering examples
+that fall into the range of 90 to 110 % of their group:
+
+![Iris with average temperature by group](images/iris-average-filter.png)
 
 
 ## Usage
 
 Import the Window Functions process into your repository by downloading and
 saving it in your Local Repository folder. You can also save it anywhere and use
-_File/Import Process..._ to open it in Studio and save it wherever you like, for
-example on a Server.
+_File/Import Process..._ to open it in Studio and save it in the repository of
+your choice, for example on a Server.
 
 Drag the process from the repository into your process or use Execute Process
 and select its location. In any case, you need to specify a few macros in the
