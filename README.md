@@ -2,12 +2,14 @@
 
 An implementation of some window functions as a [RapidMiner](https://rapidminer.com/) process.
 
+Balázs Bárány <balazs@tud.at>
+
 ## About window functions
 
 Window functions in SQL databases are aggregation functions applied to defined
 "partitions" or groups of data, without actually grouping records together. The
 PostgreSQL project has a good 
-[tutorial](https://www.postgresql.org/docs/current/static/tutorial-window.html)
+[introduction](https://www.postgresql.org/docs/current/static/tutorial-window.html)
 to window functions. 
 
 This very useful functionality has been missing in RapidMiner until now.
@@ -29,6 +31,10 @@ repository and used without changing it.
 The scope is to include useful functionality as far as possible in native
 RapidMiner, without any extensions or programming (aside from the internal
 Groovy scripting). 
+
+The license is Apache 2.0, so you can use it without any restrictions in your
+processes and also change it. If you implement a cool new function, please send
+me you version or put it on Github and send me a pull request.
 
 ### Available Functionality
 
@@ -113,4 +119,20 @@ acts upon.
 inside the subgroup. If you're using the standard aggregation functions of
 RapidMiner's Aggregate operator, this doesn't need to be specified.
 
+## Limitations
 
+The process can be slow if the number of groups is high. This is especially the
+case when using the custom functions (row_number, rank etc.). The reason is that
+these are implemented with Groovy scripts executed many times in a loop. 
+
+Some useful functions defined in the SQL standard are not yet implemented:
+percent_rank, cume_dist, ntile, lag, lead, first_value, last_value, nth_value.
+
+(lag and lead are available in the Series extension.)
+
+Windows can only be specified with attribute values but not in the other ways
+specified in SQL. (ROWS BETWEEN ... PRECEDING ... FOLLOWING)
+
+The ordering attribute is only used for the ranking and row_number functions.
+The built-in aggregation functions are always calculated for the entire group,
+regardless of the **orderField** setting. 
