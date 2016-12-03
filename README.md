@@ -2,7 +2,7 @@
 
 An implementation of some window functions as a [RapidMiner](https://rapidminer.com/) process.
 
-Balázs Bárány <balazs@tud.at>
+_Balázs Bárány <balazs@tud.at>_
 
 ## About window functions
 
@@ -12,10 +12,11 @@ PostgreSQL project has a good
 [introduction](https://www.postgresql.org/docs/current/static/tutorial-window.html)
 to window functions. 
 
-This very useful functionality has been missing in RapidMiner until now.
-Advanced users were of course able to implement similar solutions on their own,
-but it's not trivial, so I created this project to provide a central
-implementation of window functions as an easy-to-use RapidMiner process.
+This very useful functionality of modern databases has been missing in
+RapidMiner until now. Advanced users were of course able to implement similar
+processes on their own, but it's not trivial. So I created this project to
+provide a central implementation of window functions as an easy-to-use
+RapidMiner process.
 
 The [Series extension](https://marketplace.rapidminer.com/UpdateServer/faces/product_details.xhtml?productId=rmx_series)
 contains some operators called Window. They are useful for time series data but
@@ -58,7 +59,7 @@ operator. The following functions have been implemented here:
 
 - **rank**: Numerical rank of rows inside a group, ordered by an attribute. Ties
   result in the same rank (e. g. 1, 1, 3, 4, 5). The numbering can contain gaps
-  behind ties, e. g. there is no second rank in the previous example.
+  behind ties, e. g. there is no second rank if two examples have rank = 1.
 
 - **dense_rank**: Numerical rank of rows inside a group, ordered by an
   attribute. Ties result in the same rank but the numbering doesn't contain any
@@ -66,7 +67,7 @@ operator. The following functions have been implemented here:
 
 More functions could be implemented in the process.
 
-### Usage examples
+### Examples
 
 The example processes are available from the [**examples** directory](examples/). 
 
@@ -123,7 +124,7 @@ RapidMiner's Aggregate operator, this doesn't need to be specified.
 
 The process can be slow if the number of groups is high. This is especially the
 case when using the custom functions (row_number, rank etc.). The reason is that
-these are implemented with Groovy scripts executed many times in a loop. 
+these are implemented with Groovy scripts that will be executed many times in a loop. 
 
 Some useful functions defined in the SQL standard are not yet implemented:
 percent_rank, cume_dist, ntile, lag, lead, first_value, last_value, nth_value.
@@ -136,3 +137,22 @@ specified in SQL. (ROWS BETWEEN ... PRECEDING ... FOLLOWING)
 The ordering attribute is only used for the ranking and row_number functions.
 The built-in aggregation functions are always calculated for the entire group,
 regardless of the **orderField** setting. 
+
+The **groupFields** attribute has to be nominal if only one is used. Numerical
+values are converted to nominal, which should be OK but could cause some
+surprises in special cases.
+
+There is no support (yet) for working without a grouping field (which is
+possible in SQL with OVER ()). The workaround is to add a constant grouping
+field before executing the Window Functions process and remove it after.
+
+### Possible enhancements
+
+* Checking functionality in the Series extension that could be useful here.
+(However, the process is supposed to be able to run without any installed
+extensions.)
+
+* Implementing more functions:
+  * Standard SQL functions mentioned in the Limitations
+  * cumsum for cumulated sum (ordered by an attribute)
+  * min/max until current record (SQL: MIN(value) OVER (ORDER BY whatever))
