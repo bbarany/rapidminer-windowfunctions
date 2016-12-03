@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="7.2.003">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="7.2.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="-1"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="retrieve" compatibility="7.2.003" expanded="true" height="68" name="Retrieve Golf" width="90" x="112" y="34">
+        <parameter key="repository_entry" value="//Samples/data/Golf"/>
+      </operator>
+      <operator activated="true" class="productivity:execute_process" compatibility="7.2.003" expanded="true" height="82" name="Average temperature by outlook" width="90" x="246" y="34">
+        <parameter key="process_location" value="//Local Repository/Development/WindowFunc/WindowFunction"/>
+        <parameter key="use_input" value="true"/>
+        <parameter key="store_output" value="false"/>
+        <parameter key="propagate_metadata_recursively" value="true"/>
+        <parameter key="cache_process" value="true"/>
+        <list key="macros">
+          <parameter key="groupFields" value="Outlook"/>
+          <parameter key="function" value="average"/>
+          <parameter key="valueField" value="Temperature"/>
+        </list>
+        <parameter key="fail_for_unknown_macros" value="true"/>
+      </operator>
+      <operator activated="true" class="generate_attributes" compatibility="7.2.003" expanded="true" height="82" name="Add constant group attribute" width="90" x="380" y="34">
+        <list key="function_descriptions">
+          <parameter key="group" value="&quot;0&quot;"/>
+        </list>
+        <parameter key="keep_all" value="true"/>
+      </operator>
+      <operator activated="true" class="productivity:execute_process" compatibility="7.2.003" expanded="true" height="82" name="Rank by humidity" width="90" x="514" y="34">
+        <parameter key="process_location" value="//Local Repository/Development/WindowFunc/WindowFunction"/>
+        <parameter key="use_input" value="true"/>
+        <parameter key="store_output" value="false"/>
+        <parameter key="propagate_metadata_recursively" value="true"/>
+        <parameter key="cache_process" value="true"/>
+        <list key="macros">
+          <parameter key="groupFields" value="group"/>
+          <parameter key="function" value="rank"/>
+          <parameter key="valueField" value="Humidity"/>
+          <parameter key="orderField" value="Humidity"/>
+        </list>
+        <parameter key="fail_for_unknown_macros" value="true"/>
+      </operator>
+      <operator activated="true" class="select_attributes" compatibility="7.2.003" expanded="true" height="82" name="Remove group attribute" width="90" x="648" y="34">
+        <parameter key="attribute_filter_type" value="single"/>
+        <parameter key="attribute" value="group"/>
+        <parameter key="attributes" value=""/>
+        <parameter key="use_except_expression" value="false"/>
+        <parameter key="value_type" value="attribute_value"/>
+        <parameter key="use_value_type_exception" value="false"/>
+        <parameter key="except_value_type" value="time"/>
+        <parameter key="block_type" value="attribute_block"/>
+        <parameter key="use_block_type_exception" value="false"/>
+        <parameter key="except_block_type" value="value_matrix_row_start"/>
+        <parameter key="invert_selection" value="true"/>
+        <parameter key="include_special_attributes" value="false"/>
+      </operator>
+      <connect from_op="Retrieve Golf" from_port="output" to_op="Average temperature by outlook" to_port="input 1"/>
+      <connect from_op="Average temperature by outlook" from_port="result 1" to_op="Add constant group attribute" to_port="example set input"/>
+      <connect from_op="Add constant group attribute" from_port="example set output" to_op="Rank by humidity" to_port="input 1"/>
+      <connect from_op="Rank by humidity" from_port="result 1" to_op="Remove group attribute" to_port="example set input"/>
+      <connect from_op="Remove group attribute" from_port="example set output" to_port="result 1"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
+    </process>
+  </operator>
+</process>
