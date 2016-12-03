@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="7.2.003">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="7.2.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="-1"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="retrieve" compatibility="7.2.003" expanded="true" height="68" name="Retrieve Deals" width="90" x="112" y="34">
+        <parameter key="repository_entry" value="//Samples/data/Deals"/>
+      </operator>
+      <operator activated="true" class="generate_attributes" compatibility="7.2.003" expanded="true" height="82" name="Negative age" width="90" x="246" y="34">
+        <list key="function_descriptions">
+          <parameter key="NegAge" value="0 - Age"/>
+        </list>
+        <parameter key="keep_all" value="true"/>
+        <description align="center" color="transparent" colored="false" width="126">We're searching for the oldest customers, so calculate 0 - Age. The Window Functions process can only sort incrementally.</description>
+      </operator>
+      <operator activated="true" class="productivity:execute_process" compatibility="7.2.003" expanded="true" height="82" name="Rank by age, group by gender and payment method" width="90" x="380" y="34">
+        <parameter key="process_location" value="//Local Repository/Development/WindowFunc/WindowFunction"/>
+        <parameter key="use_input" value="true"/>
+        <parameter key="store_output" value="false"/>
+        <parameter key="propagate_metadata_recursively" value="true"/>
+        <parameter key="cache_process" value="true"/>
+        <list key="macros">
+          <parameter key="groupFields" value="Payment Method, Gender"/>
+          <parameter key="function" value="rank"/>
+          <parameter key="valueField" value="Age"/>
+          <parameter key="orderField" value="NegAge"/>
+        </list>
+        <parameter key="fail_for_unknown_macros" value="true"/>
+        <description align="center" color="transparent" colored="false" width="126">Group fields: Payment Method, Gender&lt;br&gt;&lt;br&gt;function: rank&lt;br&gt;&lt;br&gt;valueField: Age&lt;br/&gt;&lt;br/&gt;orderField: NegAge&lt;br&gt;</description>
+      </operator>
+      <operator activated="true" class="select_attributes" compatibility="7.2.003" expanded="true" height="82" name="Remove NegAge" width="90" x="514" y="34">
+        <parameter key="attribute_filter_type" value="single"/>
+        <parameter key="attribute" value="NegAge"/>
+        <parameter key="attributes" value=""/>
+        <parameter key="use_except_expression" value="false"/>
+        <parameter key="value_type" value="attribute_value"/>
+        <parameter key="use_value_type_exception" value="false"/>
+        <parameter key="except_value_type" value="time"/>
+        <parameter key="block_type" value="attribute_block"/>
+        <parameter key="use_block_type_exception" value="false"/>
+        <parameter key="except_block_type" value="value_matrix_row_start"/>
+        <parameter key="invert_selection" value="true"/>
+        <parameter key="include_special_attributes" value="false"/>
+      </operator>
+      <operator activated="true" class="filter_examples" compatibility="7.2.003" expanded="true" height="103" name="Filter Top 3 from each group" width="90" x="648" y="34">
+        <parameter key="parameter_expression" value=""/>
+        <parameter key="condition_class" value="custom_filters"/>
+        <parameter key="invert_filter" value="false"/>
+        <list key="filters_list">
+          <parameter key="filters_entry_key" value="Age_grp_rank.le.3"/>
+        </list>
+        <parameter key="filters_logic_and" value="true"/>
+        <parameter key="filters_check_metadata" value="true"/>
+        <description align="center" color="transparent" colored="false" width="126">This could return more than 3 customers in a group if there were ties in the age, resulting in more examples with rank &amp;lt;= 3.</description>
+      </operator>
+      <connect from_op="Retrieve Deals" from_port="output" to_op="Negative age" to_port="example set input"/>
+      <connect from_op="Negative age" from_port="example set output" to_op="Rank by age, group by gender and payment method" to_port="input 1"/>
+      <connect from_op="Rank by age, group by gender and payment method" from_port="result 1" to_op="Remove NegAge" to_port="example set input"/>
+      <connect from_op="Remove NegAge" from_port="example set output" to_op="Filter Top 3 from each group" to_port="example set input"/>
+      <connect from_op="Filter Top 3 from each group" from_port="example set output" to_port="result 1"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
+    </process>
+  </operator>
+</process>
